@@ -1,0 +1,30 @@
+[package]
+name = "hardened_malloc-sys"
+build = "build.rs"
+description = "hardened_malloc rust wrapper (sys crate)"
+authors = ["strawberry <strawberry@pupbrain.dev>"]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0 and MIT"
+repository = "https://github.com/girlbossceo/hardened_malloc-sys"
+categories = ["api-bindings", "memory-management"]
+keywords = ["hardened_malloc", "malloc", "hardened memory allocator", "security"]
+readme = "README.md"
+exclude = [
+    "/src/hardened_malloc/test",
+    "/src/hardened_malloc/androidtest",
+    "/src/hardened_malloc/out",
+    "/src/hardened_malloc/out-light",
+]
+
+[features]
+default = ["light"]
+light = []
+# "standard" feature is "default.mk" config in hardened_malloc
+standard = []
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+cc = "1.0"
