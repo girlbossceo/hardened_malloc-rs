@@ -1,0 +1,23 @@
+[package]
+name = "hardened_malloc-rs"
+description = "hardened_malloc for rust projects"
+authors = ["strawberry <strawberry@pupbrain.dev>"]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0 and MIT"
+repository = "https://github.com/girlbossceo/hardened_malloc-rs"
+categories = ["api-bindings", "memory-management"]
+keywords = ["hardened_malloc", "malloc", "hardened memory allocator", "security"]
+readme = "README.md"
+
+[workspace]
+members = ["hardened_malloc-sys"]
+
+[dependencies]
+hardened_malloc-sys = { path = "hardened_malloc-sys", version = "0.1" }
+
+[features]
+default = ["light"]
+light = ["hardened_malloc-sys/light"]
+# "standard" feature is "default.mk" config in hardened_malloc
+standard = ["hardened_malloc-sys/standard"]

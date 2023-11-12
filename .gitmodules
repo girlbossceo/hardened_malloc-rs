@@ -1,0 +1,3 @@
+[submodule "hardened_malloc-sys"]
+	path = hardened_malloc-sys
+	url = https://github.com/girlbossceo/hardened_malloc-sys.git
