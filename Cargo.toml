@@ -10,12 +10,6 @@ repository = "https://github.com/girlbossceo/hardened_malloc-sys"
 categories = ["api-bindings", "memory-management"]
 keywords = ["hardened_malloc", "malloc", "hardened memory allocator", "security"]
 readme = "README.md"
-exclude = [
-    "/src/hardened_malloc/test",
-    "/src/hardened_malloc/androidtest",
-    "/src/hardened_malloc/out",
-    "/src/hardened_malloc/out-light",
-]
 
 [features]
 default = ["light"]
