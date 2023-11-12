@@ -1,23 +1,23 @@
 #![no_std]
 
-use core::ffi::{c_void, c_int};
+use core::ffi::{c_int, c_void};
 
 extern crate libc;
 
 extern "C" {
     /*
-    TODO: implement this
+        TODO: implement this
 
-    #ifdef __ANDROID__
-#define H_MALLOC_USABLE_SIZE_CONST const
-#else
-#define H_MALLOC_USABLE_SIZE_CONST
-#endif
+        #ifdef __ANDROID__
+    #define H_MALLOC_USABLE_SIZE_CONST const
+    #else
+    #define H_MALLOC_USABLE_SIZE_CONST
+    #endif
 
-    for:
-    // glibc extensions
-size_t h_malloc_usable_size(H_MALLOC_USABLE_SIZE_CONST void *ptr);
- */
+        for:
+        // glibc extensions
+    size_t h_malloc_usable_size(H_MALLOC_USABLE_SIZE_CONST void *ptr);
+     */
 
     /* C standard */
 
@@ -47,13 +47,13 @@ size_t h_malloc_usable_size(H_MALLOC_USABLE_SIZE_CONST void *ptr);
     pub fn h_malloc_set_state(ptr: *mut c_void) -> c_int;
 
     /*TODO: implement this see the top:
-    #if defined(__GLIBC__) || defined(__ANDROID__)
-struct mallinfo h_mallinfo(void);
-#endif
-#ifndef __ANDROID__
-int h_malloc_info(int options, FILE *fp);
-#endif
- */
+        #if defined(__GLIBC__) || defined(__ANDROID__)
+    struct mallinfo h_mallinfo(void);
+    #endif
+    #ifndef __ANDROID__
+    int h_malloc_info(int options, FILE *fp);
+    #endif
+     */
 
     /* hardened_malloc extensions */
 
@@ -62,7 +62,6 @@ int h_malloc_info(int options, FILE *fp);
 
     /// similar to malloc_object_size, but avoids locking so the results are much more limited
     pub fn h_malloc_object_size_fast(ptr: *const c_void) -> usize;
-
 
     /// The free function with an extra parameter for passing the size requested at
     /// allocation time.
