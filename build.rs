@@ -30,6 +30,10 @@ fn update_submodules() {
 }
 
 fn main() {
+    //println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=src/hardened_malloc/");
+    //println!("cargo:out_dir={}", env::var("OUT_DIR").unwrap());
+
     if !Path::new("src/hardened_malloc/Makefile").exists() {
         println!("src/hardened_malloc/Makefile does not exist, running submodule sync");
         update_submodules();
@@ -64,9 +68,23 @@ fn main() {
         );
     }
 
-    //println!("cargo:rustc-link-search=native=src/hardened_malloc");
+    //std::env::set_var("OUT_DIR", "$OUT");
 
-    //println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=src/hardened_malloc/");
-    //println!("cargo:out_dir={}", env::var("OUT_DIR").unwrap());
+    println!("cargo:include=src/hardened_malloc/include");
+
+    if cfg!(feature = "light") {
+        //println!("cargo:rustc-link-lib=static=src/hardened_malloc/out-light/libhardened_malloc-light.so");
+        println!(
+            "cargo:rustc-link-lib=dylib=src/hardened_malloc/out-light/libhardened_malloc-light.so"
+        );
+        println!("cargo:lib=src/hardened_malloc/out-light/libhardened_malloc-light.so");
+        //println!("cargo:rustc-link-lib=static=libhardened_malloc-light");
+        println!("cargo:rustc-link-search=native=src/hardened_malloc/out-light/");
+    } else {
+        //println!("cargo:rustc-link-lib=static=src/hardened_malloc/out/libhardened_malloc.so");
+        println!("cargo:rustc-link-lib=dylib=src/hardened_malloc/out/libhardened_malloc.so");
+        println!("cargo:lib=src/hardened_malloc/out/libhardened_malloc.so");
+        //println!("cargo:rustc-link-lib=static=libhardened_malloc");
+        println!("cargo:rustc-link-search=native=src/hardened_malloc/out/");
+    }
 }
