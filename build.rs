@@ -124,15 +124,12 @@ fn main() {
 
     if cfg!(feature = "light") {
         //println!("cargo:rustc-link-lib=static=src/hardened_malloc/out-light/libhardened_malloc-light.so");
-        println!(
-            "cargo:rustc-link-lib={}/libhardened_malloc-light.so",
-            out_dir
-        );
+        println!("cargo:rustc-link-lib=libhardened_malloc-light");
         println!("cargo:rustc-link-search=native={}", out_dir);
         //println!("cargo:rustc-link-lib=static=libhardened_malloc-light");
     } else {
         //println!("cargo:rustc-link-lib=static=src/hardened_malloc/out/libhardened_malloc.so");
-        println!("cargo:rustc-link-lib={}/libhardened_malloc.so", out_dir);
+        println!("cargo:rustc-link-lib=libhardened_malloc");
         println!("cargo:rustc-link-search=native={}", out_dir);
         //println!("cargo:rustc-link-lib=static=libhardened_malloc");
     }
