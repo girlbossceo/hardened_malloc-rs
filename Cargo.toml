@@ -12,7 +12,19 @@ keywords = ["hardened_malloc", "malloc", "hardened memory allocator", "security"
 readme = "README.md"
 
 [features]
-default = ["light"]
+default = ["light", "clang"]
+
+## compiler
+clang = []
+gcc = []
+
+## linking method
+#static = []
+#dynamic = []
+#system = []
+
+## hardened_malloc config
+
 light = []
 # "standard" feature is "default.mk" config in hardened_malloc
 standard = []

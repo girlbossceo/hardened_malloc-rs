@@ -17,36 +17,78 @@ fn update_submodules() {
     let ret = Command::new(program).args(args).status();
 
     match ret.map(|status| (status.success(), status.code())) {
-        Ok((true, _)) => (),
-        Ok((false, Some(c))) => panic!(
-            "[hardened_malloc-sys]: Command failed with error code {}",
-            c
+        Ok((true, _)) => println!("[hardened_malloc-sys]: Updating submodules exited successfully"),
+        Ok((false, Some(exit_code))) => panic!(
+            "[hardened_malloc-sys]: Updating submodules failed with error code {}",
+            exit_code
         ),
         Ok((false, None)) => panic!(
-            "[hardened_malloc-sys]: Command exited with no error code, possibly killed by system"
+            "[hardened_malloc-sys]: Updating submodules exited with no error code, possibly killed by system"
         ),
-        Err(e) => panic!("[hardened_malloc-sys]: Command failed with error: {}", e),
+        Err(e) => panic!("[hardened_malloc-sys]: Updating submodules failed with error: {}", e),
+    }
+}
+
+fn check_compiler(compiler: &str) {
+    let args = "-v";
+
+    println!(
+        "[hardened_malloc-sys]: Checking if compiler {} exists",
+        compiler
+    );
+
+    let ret = Command::new(compiler).arg(args).status();
+
+    match ret.map(|status| (status.success(), status.code())) {
+        Ok((true, _)) => println!("[hardened_malloc-sys]: Compiler check exited successfully"),
+        Ok((false, Some(exit_code))) => panic!(
+            "[hardened_malloc-sys]: Compiler check failed with error code {}",
+            exit_code
+        ),
+        Ok((false, None)) => panic!(
+            "[hardened_malloc-sys]: Compiler check exited with no error code, possibly killed by system"
+        ),
+        Err(e) => panic!("[hardened_malloc-sys]: Compiler check failed with error: {}", e),
     }
 }
 
 fn main() {
-    //println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/hardened_malloc/");
-    //println!("cargo:out_dir={}", env::var("OUT_DIR").unwrap());
+    println!("cargo:rerun-if-changed=src/hardened_malloc/.git");
+    println!("cargo:rerun-if-changed=src/hardened_malloc/.git/HEAD");
+    println!("cargo:rerun-if-changed=src/hardened_malloc/.git/index");
+    println!("cargo:rerun-if-changed=src/hardened_malloc/.git/refs/tags");
+
+    let out_dir = env::var("OUT_DIR").unwrap();
 
     if !Path::new("src/hardened_malloc/Makefile").exists() {
         println!("src/hardened_malloc/Makefile does not exist, running submodule sync");
         update_submodules();
     }
-    let variant;
 
-    if cfg!(feature = "light") {
-        variant = "light";
+    let compiler = if cfg!(feature = "gcc") {
+        check_compiler("gcc");
+        "gcc"
     } else {
-        variant = "default"; // "default" is hardened_malloc's default.mk. this crate's feature uses "standard" for "default"
-    }
+        check_compiler("clang");
+        "clang"
+    };
 
-    let build_args = ["VARIANT=".to_owned() + variant, "V=".to_owned() + "1"];
+    let variant = if cfg!(feature = "light") {
+        "light"
+    } else {
+        "default" // "default" is hardened_malloc's default.mk. this crate's feature uses "standard" for "default"
+    };
+
+    let build_args = [
+        "VARIANT=".to_owned() + variant,
+        "V=".to_owned() + "1",
+        "OUT=".to_owned() + &out_dir,
+        "CC=".to_owned() + compiler,
+    ];
+
+    //TODO: add support for dynamic and static linking
 
     //TODO: handle support for explicit make flags like N_ARENA=1 and such
 
@@ -67,24 +109,21 @@ fn main() {
             String::from_utf8_lossy(&make_output.stderr)
         );
     }
-
-    //std::env::set_var("OUT_DIR", "$OUT");
-
+    println!("OUT_DIR: {}", out_dir);
     println!("cargo:include=src/hardened_malloc/include");
 
     if cfg!(feature = "light") {
         //println!("cargo:rustc-link-lib=static=src/hardened_malloc/out-light/libhardened_malloc-light.so");
         println!(
-            "cargo:rustc-link-lib=dylib=src/hardened_malloc/out-light/libhardened_malloc-light.so"
+            "cargo:rustc-link-lib={}/libhardened_malloc-light.so",
+            out_dir
         );
-        println!("cargo:lib=src/hardened_malloc/out-light/libhardened_malloc-light.so");
+        println!("cargo:rustc-link-search=native={}", out_dir);
         //println!("cargo:rustc-link-lib=static=libhardened_malloc-light");
-        println!("cargo:rustc-link-search=native=src/hardened_malloc/out-light/");
     } else {
         //println!("cargo:rustc-link-lib=static=src/hardened_malloc/out/libhardened_malloc.so");
-        println!("cargo:rustc-link-lib=dylib=src/hardened_malloc/out/libhardened_malloc.so");
-        println!("cargo:lib=src/hardened_malloc/out/libhardened_malloc.so");
+        println!("cargo:rustc-link-lib={}/libhardened_malloc.so", out_dir);
+        println!("cargo:rustc-link-search=native={}", out_dir);
         //println!("cargo:rustc-link-lib=static=libhardened_malloc");
-        println!("cargo:rustc-link-search=native=src/hardened_malloc/out/");
     }
 }
