@@ -61,11 +61,17 @@ fn main() {
     println!("cargo:rerun-if-changed=src/hardened_malloc/.git/refs/tags");
 
     let out_dir = env::var("OUT_DIR").unwrap();
+    let current_working_directory = current_dir().unwrap();
 
     if !Path::new("src/hardened_malloc/Makefile").exists() {
         println!("src/hardened_malloc/Makefile does not exist, running submodule sync");
         update_submodules();
     }
+
+    println!(
+        "cargo:include={}/src/hardened_malloc/include",
+        current_working_directory.display()
+    );
 
     let compiler = if cfg!(feature = "gcc") {
         check_compiler("gcc");
@@ -109,8 +115,12 @@ fn main() {
             String::from_utf8_lossy(&make_output.stderr)
         );
     }
-    println!("OUT_DIR: {}", out_dir);
-    println!("cargo:include=src/hardened_malloc/include");
+
+    println!(
+        "[hardened_malloc-sys]: current working directory: {}",
+        current_working_directory.display()
+    );
+    println!("[hardened_malloc-sys]: OUT_DIR={}", out_dir);
 
     if cfg!(feature = "light") {
         //println!("cargo:rustc-link-lib=static=src/hardened_malloc/out-light/libhardened_malloc-light.so");
