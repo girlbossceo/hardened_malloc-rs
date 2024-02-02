@@ -23,7 +23,7 @@ fn update_submodules() {
             exit_code
         ),
         Ok((false, None)) => panic!(
-            "[hardened_malloc-sys]: Updating submodules exited with no error code, possibly killed by system"
+            "[hardened_malloc-sys]: Updating submodules exited with no error code, possibly killed by system, exiting."
         ),
         Err(e) => panic!("[hardened_malloc-sys]: Updating submodules failed with error: {}", e),
     }
@@ -94,19 +94,20 @@ fn main() {
         "CC=".to_owned() + compiler,
     ];
 
-    //TODO: add support for dynamic and static linking
-
     //TODO: handle support for explicit make flags like N_ARENA=1 and such
 
     let mut make_command = Command::new("make");
+
     println!("running {:?} with args {:?}", make_command, build_args);
+
     let make_output = make_command
         .current_dir("src/hardened_malloc/")
         .args(build_args)
         .output()
         .unwrap_or_else(|error| {
-            panic!("Failed to run 'make {}': ", error);
+            panic!("[hardened_malloc-sys]: Failed to run 'make {}': ", error);
         });
+
     if !make_output.status.success() {
         panic!(
             "[hardened_malloc-sys]: building hardened_malloc failed:\n{:?}\n{}\n{}",
@@ -116,21 +117,58 @@ fn main() {
         );
     }
 
+    let ar_lib_output = if cfg!(feature = "light") {
+        "/libhardened_malloc-light.a"
+    } else {
+        "/libhardened_malloc.a"
+    };
+
+    // TOOD: improve this
+    let ar_args = [
+        "r".to_owned(),
+        out_dir.clone() + ar_lib_output,
+        out_dir.clone() + "/chacha.o",
+        out_dir.clone() + "/h_malloc.o",
+        out_dir.clone() + "/memory.o",
+        out_dir.clone() + "/new.o",
+        out_dir.clone() + "/pages.o",
+        out_dir.clone() + "/random.o",
+        out_dir.clone() + "/util.o",
+    ];
+
+    let mut ar_command = Command::new("ar");
+
+    println!("running {:?} with args {:?}", ar_command, ar_args);
+
+    let ar_output = ar_command
+        .current_dir("src/hardened_malloc/")
+        .args(ar_args)
+        .output()
+        .unwrap_or_else(|error| {
+            panic!("[hardened_malloc-sys]: Failed to run 'ar {}': ", error);
+        });
+
+    if !ar_output.status.success() {
+        panic!(
+            "[hardened_malloc-sys]: creating static lib of hardened_malloc failed:\n{:?}\n{}\n{}",
+            ar_command,
+            String::from_utf8_lossy(&ar_output.stdout),
+            String::from_utf8_lossy(&ar_output.stderr)
+        );
+    }
+
     println!(
         "[hardened_malloc-sys]: current working directory: {}",
         current_working_directory.display()
     );
+
     println!("[hardened_malloc-sys]: OUT_DIR={}", out_dir);
 
     if cfg!(feature = "light") {
-        //println!("cargo:rustc-link-lib=static=src/hardened_malloc/out-light/libhardened_malloc-light.so");
-        println!("cargo:rustc-link-lib=libhardened_malloc-light");
-        println!("cargo:rustc-link-search=native={}", out_dir);
-        //println!("cargo:rustc-link-lib=static=libhardened_malloc-light");
+        println!("cargo:rustc-link-lib=hardened_malloc-light");
+        println!("cargo:rustc-link-search={}", out_dir);
     } else {
-        //println!("cargo:rustc-link-lib=static=src/hardened_malloc/out/libhardened_malloc.so");
-        println!("cargo:rustc-link-lib=libhardened_malloc");
-        println!("cargo:rustc-link-search=native={}", out_dir);
-        //println!("cargo:rustc-link-lib=static=libhardened_malloc");
+        println!("cargo:rustc-link-lib=hardened_malloc");
+        println!("cargo:rustc-link-search={}", out_dir);
     }
 }
