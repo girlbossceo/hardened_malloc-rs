@@ -1,9 +1,6 @@
-#![no_std]
-
 use core::ffi::{c_int, c_void};
 
-extern crate libc;
-
+#[allow(dead_code)]
 extern "C" {
     /*
         TODO: implement this
@@ -21,30 +18,30 @@ extern "C" {
 
     /* C standard */
 
-    pub fn h_malloc(size: usize) -> *mut c_void;
-    pub fn h_calloc(nmemb: usize, size: usize) -> *mut c_void;
-    pub fn h_realloc(ptr: *mut c_void, size: usize) -> *mut c_void;
-    pub fn h_aligned_malloc(alignment: usize, size: usize) -> *mut c_void;
-    pub fn h_free(ptr: *mut c_void);
+    pub fn malloc(size: usize) -> *mut c_void;
+    pub fn calloc(nmemb: usize, size: usize) -> *mut c_void;
+    pub fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void;
+    pub fn aligned_malloc(alignment: usize, size: usize) -> *mut c_void;
+    pub fn free(ptr: *mut c_void);
 
     /* POSIX */
 
-    pub fn h_posix_memalign(memptr: *mut *mut c_void, alignment: usize, size: usize) -> c_int;
+    pub fn posix_memalign(memptr: *mut *mut c_void, alignment: usize, size: usize) -> c_int;
 
     /* glibc extensions */
 
-    pub fn h_malloc_usable_size(ptr: *const c_void) -> usize;
-    pub fn h_mallopt(param: c_int, value: c_int) -> c_int;
-    pub fn h_malloc_trim(pad: usize) -> c_int;
-    pub fn h_malloc_stats(void: c_void) -> c_void;
+    pub fn malloc_usable_size(ptr: *const c_void) -> usize;
+    pub fn mallopt(param: c_int, value: c_int) -> c_int;
+    pub fn malloc_trim(pad: usize) -> c_int;
+    pub fn malloc_stats(void: c_void) -> c_void;
 
     /* obsolete glibc extensions */
 
-    pub fn h_memalign(alignment: usize, size: usize) -> *mut c_void;
-    pub fn h_pvalloc(size: usize) -> *mut c_void;
-    pub fn h_cfree(ptr: *mut c_void) -> c_void;
-    pub fn h_malloc_get_state(void: c_void) -> c_void;
-    pub fn h_malloc_set_state(ptr: *mut c_void) -> c_int;
+    pub fn memalign(alignment: usize, size: usize) -> *mut c_void;
+    pub fn pvalloc(size: usize) -> *mut c_void;
+    pub fn cfree(ptr: *mut c_void) -> c_void;
+    pub fn malloc_get_state(void: c_void) -> c_void;
+    pub fn malloc_set_state(ptr: *mut c_void) -> c_int;
 
     /*TODO: implement this see the top:
         #if defined(__GLIBC__) || defined(__ANDROID__)
@@ -58,10 +55,10 @@ extern "C" {
     /* hardened_malloc extensions */
 
     /// return an upper bound on object size for any pointer based on malloc metadata
-    pub fn h_malloc_object_size(ptr: *const c_void) -> usize;
+    pub fn malloc_object_size(ptr: *const c_void) -> usize;
 
     /// similar to malloc_object_size, but avoids locking so the results are much more limited
-    pub fn h_malloc_object_size_fast(ptr: *const c_void) -> usize;
+    pub fn malloc_object_size_fast(ptr: *const c_void) -> usize;
 
     /// The free function with an extra parameter for passing the size requested at
     /// allocation time.
@@ -73,5 +70,5 @@ extern "C" {
     /// enhancement with undefined behavior on a mismatch. Instead, this hardened
     /// allocator implementation uses it to improve security by checking that the
     /// passed size matches the allocated size.
-    pub fn h_free_sized(ptr: *mut c_void, expected_size: usize) -> c_void;
+    pub fn free_sized(ptr: *mut c_void, expected_size: usize) -> c_void;
 }

@@ -28,9 +28,3 @@ gcc = []
 light = []
 # "standard" feature is "default.mk" config in hardened_malloc
 standard = []
-
-[dependencies]
-libc = "0.2"
-
-[build-dependencies]
-cc = "1.0"

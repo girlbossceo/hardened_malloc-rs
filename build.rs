@@ -68,11 +68,6 @@ fn main() {
         update_submodules();
     }
 
-    println!(
-        "cargo:include={}/src/hardened_malloc/include",
-        current_working_directory.display()
-    );
-
     let compiler = if cfg!(feature = "gcc") {
         check_compiler("gcc");
         "gcc"
@@ -118,15 +113,15 @@ fn main() {
     }
 
     let ar_lib_output = if cfg!(feature = "light") {
-        "/libhardened_malloc-light.a"
+        out_dir.clone() + "/libhardened_malloc-light.a"
     } else {
-        "/libhardened_malloc.a"
+        out_dir.clone() + "/libhardened_malloc.a"
     };
 
     // TOOD: improve this
     let ar_args = [
-        "r".to_owned(),
-        out_dir.clone() + ar_lib_output,
+        "rcs".to_owned(),
+        ar_lib_output,
         out_dir.clone() + "/chacha.o",
         out_dir.clone() + "/h_malloc.o",
         out_dir.clone() + "/memory.o",
@@ -141,7 +136,6 @@ fn main() {
     println!("running {:?} with args {:?}", ar_command, ar_args);
 
     let ar_output = ar_command
-        .current_dir("src/hardened_malloc/")
         .args(ar_args)
         .output()
         .unwrap_or_else(|error| {
@@ -165,10 +159,10 @@ fn main() {
     println!("[hardened_malloc-sys]: OUT_DIR={}", out_dir);
 
     if cfg!(feature = "light") {
-        println!("cargo:rustc-link-lib=hardened_malloc-light");
+        println!("cargo:rustc-link-lib=static=hardened_malloc-light");
         println!("cargo:rustc-link-search={}", out_dir);
     } else {
-        println!("cargo:rustc-link-lib=hardened_malloc");
+        println!("cargo:rustc-link-lib=static=hardened_malloc");
         println!("cargo:rustc-link-search={}", out_dir);
     }
 }
