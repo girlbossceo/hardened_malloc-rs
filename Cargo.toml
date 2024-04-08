@@ -1,12 +1,11 @@
 [package]
-name = "hardened_malloc-sys"
-build = "build.rs"
-description = "hardened_malloc rust wrapper (sys crate)"
+name = "hardened_malloc-rs"
+description = "hardened_malloc rust wrapper"
 authors = ["strawberry <strawberry@pupbrain.dev>"]
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0 and MIT"
-repository = "https://github.com/girlbossceo/hardened_malloc-sys"
+repository = "https://github.com/girlbossceo/hardened_malloc"
 categories = ["api-bindings", "memory-management"]
 keywords = ["hardened_malloc", "malloc", "hardened memory allocator", "security"]
 readme = "README.md"
@@ -17,11 +16,6 @@ default = ["light", "clang"]
 ## compiler
 clang = []
 gcc = []
-
-## linking method
-#static = []
-#dynamic = []
-#system = []
 
 ## hardened_malloc config
 

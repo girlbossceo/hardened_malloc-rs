@@ -1,4 +1,4 @@
-use hardened_malloc_sys::HardenedMalloc;
+use hardened_malloc_rs::HardenedMalloc;
 
 #[global_allocator]
 static GLOBAL: HardenedMalloc = HardenedMalloc; 
