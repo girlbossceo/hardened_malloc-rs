@@ -53,6 +53,9 @@ fn check_compiler(compiler: &str) {
 }
 
 fn main() {
+    #[cfg(all(feature = "gcc", feature="clang"))]
+    compile_error!("gcc OR clang must be enabled, not both.");
+
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/hardened_malloc/");
     println!("cargo:rerun-if-changed=src/hardened_malloc/.git");
@@ -112,45 +115,6 @@ fn main() {
         );
     }
 
-    let ar_lib_output = if cfg!(feature = "light") {
-        out_dir.clone() + "/libhardened_malloc-light.a"
-    } else {
-        out_dir.clone() + "/libhardened_malloc.a"
-    };
-
-    // TOOD: improve this
-    let ar_args = [
-        "rcs".to_owned(),
-        ar_lib_output,
-        out_dir.clone() + "/chacha.o",
-        out_dir.clone() + "/h_malloc.o",
-        out_dir.clone() + "/memory.o",
-        out_dir.clone() + "/new.o",
-        out_dir.clone() + "/pages.o",
-        out_dir.clone() + "/random.o",
-        out_dir.clone() + "/util.o",
-    ];
-
-    let mut ar_command = Command::new("ar");
-
-    println!("running {:?} with args {:?}", ar_command, ar_args);
-
-    let ar_output = ar_command
-        .args(ar_args)
-        .output()
-        .unwrap_or_else(|error| {
-            panic!("[hardened_malloc-sys]: Failed to run 'ar {}': ", error);
-        });
-
-    if !ar_output.status.success() {
-        panic!(
-            "[hardened_malloc-sys]: creating static lib of hardened_malloc failed:\n{:?}\n{}\n{}",
-            ar_command,
-            String::from_utf8_lossy(&ar_output.stdout),
-            String::from_utf8_lossy(&ar_output.stderr)
-        );
-    }
-
     println!(
         "[hardened_malloc-sys]: current working directory: {}",
         current_working_directory.display()
@@ -159,10 +123,10 @@ fn main() {
     println!("[hardened_malloc-sys]: OUT_DIR={}", out_dir);
 
     if cfg!(feature = "light") {
-        println!("cargo:rustc-link-lib=static=hardened_malloc-light");
+        println!("cargo:rustc-link-lib=dylib=hardened_malloc-light");
         println!("cargo:rustc-link-search={}", out_dir);
     } else {
-        println!("cargo:rustc-link-lib=static=hardened_malloc");
+        println!("cargo:rustc-link-lib=dylib=hardened_malloc");
         println!("cargo:rustc-link-search={}", out_dir);
     }
 }
