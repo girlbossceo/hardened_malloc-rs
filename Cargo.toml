@@ -1,24 +1,43 @@
 [package]
 name = "hardened_malloc-rs"
 description = "hardened_malloc rust wrapper"
-authors = ["strawberry <strawberry@pupbrain.dev>"]
-version = "0.1.0"
+authors = ["strawberry <strawberry@puppygock.gay>"]
 edition = "2021"
 license = "Apache-2.0 and MIT"
-repository = "https://github.com/girlbossceo/hardened_malloc"
+repository = "https://github.com/girlbossceo/hardened_malloc-rs"
+keywords = ["hardened_malloc", "malloc", "hardened memory allocator", "security", "bindings", "ffi"]
 categories = ["api-bindings", "memory-management"]
-keywords = ["hardened_malloc", "malloc", "hardened memory allocator", "security"]
 readme = "README.md"
 
+# everything after the '+' is the latest GrapheneOS hardened_malloc repo tag
+version = "0.1.0+12"
+
+# https://github.com/GrapheneOS/hardened_malloc?tab=readme-ov-file#dependencies
+# Debian stable (currently Debian 12) determines the most ancient set of supported dependencies
+#
+# (Debian 12 has Rust 1.63.0)
+rust-version = "1.63.0"
+
 [features]
-default = ["light", "clang"]
+default = ["light", "gcc", "static"]
 
 ## compiler
 clang = []
 gcc = []
 
-## hardened_malloc config
+## linking method
+dynamic = []
 
+
+# todo: remove this warning
+# https://github.com/girlbossceo/hardened_malloc-rs/issues/5
+# IF USING CLANG: 
+#
+# REQUIRES BUILDING YOUR CRATE WITH `RUSTFLAGS='-Clink-arg=-fuse-ld=lld'`
+# REQUIRES llvm, llvm-ar, lld, clang, libclang, AND llvm-libs
+static = []
+
+## hardened_malloc config
 light = []
 # "standard" feature is "default.mk" config in hardened_malloc
 standard = []

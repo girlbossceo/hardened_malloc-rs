@@ -26,28 +26,59 @@ fn update_submodules() {
 	}
 }
 
-fn check_compiler(compiler: &'static str) -> &'static str {
-	let args = "-v";
+fn check_compiler_and_linker(compiler: &'static str, linker: &'static str) -> (&'static str, &'static str) {
+	println!("checking if compiler {compiler} exists");
 
-	println!("checking if compiler {} exists", compiler);
+	let compiler_ret = Command::new(compiler).arg("--version").status();
 
-	let ret = Command::new(compiler).arg(args).status();
-
-	match ret.map(|status| (status.success(), status.code())) {
+	match compiler_ret.map(|status| (status.success(), status.code())) {
 		Ok((true, _)) => println!("compiler check exited successfully"),
-		Ok((false, Some(exit_code))) => panic!("compiler check failed with error code {}", exit_code),
+		Ok((false, Some(exit_code))) => panic!("compiler check failed with error code {exit_code}"),
 		Ok((false, None)) => panic!("compiler check exited with no error code, possibly killed by system"),
-		Err(e) => panic!("compiler check failed with error: {}", e),
+		Err(e) => panic!("compiler check failed with error: {e}"),
 	}
-	compiler
+
+	println!("checking if linker {linker} exists");
+
+	let linker_ret = Command::new(linker).arg("--version").status();
+
+	match linker_ret.map(|status| (status.success(), status.code())) {
+		Ok((true, _)) => println!("linker check exited successfully"),
+		Ok((false, Some(exit_code))) => {
+			if exit_code == 1 {
+				println!("linker check exited with exit code 1, assuming it's available");
+			}
+		},
+		Ok((false, None)) => panic!("linker check exited with no error code, possibly killed by system"),
+		Err(e) => panic!("linker check failed with error: {e}"),
+	}
+
+	if linker.contains("lld") {
+		println!("checking if llvm-ar exists as lld is being used (static build)");
+
+		let llvm_ar_ret = Command::new("llvm-ar").arg("--version").status();
+
+		match llvm_ar_ret.map(|status| (status.success(), status.code())) {
+			Ok((true, _)) => println!("llvm-ar check exited successfully"),
+			Ok((false, Some(exit_code))) => panic!("llvm-ar check failed with error code {exit_code}"),
+			Ok((false, None)) => panic!("llvm-ar check exited with no error code, possibly killed by system"),
+			Err(e) => panic!("llvm-ar check failed with error: {e}"),
+		}
+	}
+
+	(compiler, linker)
 }
 
 fn main() {
 	#[cfg(all(feature = "gcc", feature = "clang"))]
 	compile_error!("gcc OR clang must be enabled, not both.");
 
+	#[cfg(all(feature = "static", feature = "dynamic"))]
+	compile_error!("static OR dynamic must be enabled, not both.");
+
 	println!("cargo:rerun-if-changed=build.rs");
 	println!("cargo:rerun-if-changed=src/hardened_malloc/");
+	println!("cargo:rerun-if-changed=src/hardened_malloc/LICENSE");
 	println!("cargo:rerun-if-changed=src/hardened_malloc/.git");
 	println!("cargo:rerun-if-changed=src/hardened_malloc/.git/HEAD");
 	println!("cargo:rerun-if-changed=src/hardened_malloc/.git/index");
@@ -60,37 +91,42 @@ fn main() {
 		update_submodules();
 	}
 
-	let compiler = if cfg!(feature = "gcc") {
-		check_compiler("gcc")
+	let (compiler, linker) = if cfg!(feature = "gcc") && cfg!(feature = "dynamic") {
+		check_compiler_and_linker("gcc", "ld")
+	} else if cfg!(feature = "gcc") && cfg!(feature = "static") {
+		check_compiler_and_linker("gcc", "gcc-ar")
+	} else if cfg!(feature = "clang") && cfg!(feature = "dynamic") {
+		check_compiler_and_linker("clang", "ld")
 	} else {
-		check_compiler("clang")
+		check_compiler_and_linker("clang", "ld.lld")
 	};
 
+	// "default" is hardened_malloc's default.mk. this crate's feature uses
+	// "standard" for "default"
 	let variant = if cfg!(feature = "light") {
 		"light"
 	} else {
-		"default" // "default" is hardened_malloc's default.mk. this crate's feature
-		  // uses "standard" for "default"
+		"default"
 	};
 
-	let build_args = [
+	let build_args: Vec<String> = vec![
 		format!("VARIANT={}", variant),
-		format!("V={}", "1"),
+		format!("V={}", "1"), // verbose (?)
 		format!("OUT={}", &out_dir),
 		format!("CC={}", compiler),
 	];
 
-	//TODO: handle support for explicit make flags like N_ARENA=1 and such
+	// TODO: handle support for explicit make flags like N_ARENA=1 and such
 	let mut make_command = Command::new("make");
 
 	println!("running {:?} with args {:?}", make_command, build_args);
 
 	let make_output = make_command
 		.current_dir("src/hardened_malloc/")
-		.args(build_args)
+		.args(build_args.clone())
 		.output()
 		.unwrap_or_else(|error| {
-			panic!("failed to run 'make {}': ", error);
+			panic!("failed to run 'make {build_args:?}': {error}");
 		});
 
 	if !make_output.status.success() {
@@ -102,11 +138,67 @@ fn main() {
 		);
 	}
 
-	if cfg!(feature = "light") {
-		println!("cargo:rustc-link-lib=dylib=hardened_malloc-light");
-		println!("cargo:rustc-link-search={}", out_dir);
-	} else {
-		println!("cargo:rustc-link-lib=dylib=hardened_malloc");
-		println!("cargo:rustc-link-search={}", out_dir);
+	if cfg!(feature = "static") {
+		let ar_lib_output = if cfg!(feature = "light") {
+			out_dir.clone() + "/libhardened_malloc-light.a"
+		} else {
+			out_dir.clone() + "/libhardened_malloc.a"
+		};
+
+		let ar_args = [
+			"rcs".to_owned(),
+			ar_lib_output,
+			out_dir.clone() + "/chacha.o",
+			out_dir.clone() + "/h_malloc.o",
+			out_dir.clone() + "/memory.o",
+			out_dir.clone() + "/new.o",
+			out_dir.clone() + "/pages.o",
+			out_dir.clone() + "/random.o",
+			out_dir.clone() + "/util.o",
+			out_dir.clone() + "/new.o",
+		];
+
+		let mut ar_command = Command::new("llvm-ar");
+
+		println!("running {:?} with args {:?}", ar_command, ar_args);
+
+		let ar_output = ar_command.args(ar_args).output().unwrap_or_else(|error| {
+			panic!("Failed to run '{ar_command:?}': {error}");
+		});
+
+		if !ar_output.status.success() {
+			panic!(
+				"creating static lib of hardened_malloc failed:\n{:?}\n{}\n{}",
+				ar_command,
+				String::from_utf8_lossy(&ar_output.stdout),
+				String::from_utf8_lossy(&ar_output.stderr)
+			);
+		}
+
+		if cfg!(feature = "light") {
+			println!("cargo:rustc-link-search={}", out_dir);
+			println!("cargo:rustc-link-lib=static=hardened_malloc-light");
+		} else {
+			println!("cargo:rustc-link-search={}", out_dir);
+			println!("cargo:rustc-link-lib=static=hardened_malloc");
+		}
+	} else if cfg!(feature = "dynamic") {
+		// TODO: is this needed?
+		let target = env::var("TARGET").unwrap();
+		if target.contains("apple") || target.contains("freebsd") || target.contains("openbsd") {
+			println!("cargo:rustc-link-lib=dylib=c++");
+		} else if target.contains("linux") {
+			println!("cargo:rustc-link-lib=dylib=stdc++");
+		}
+
+		if cfg!(feature = "light") {
+			println!("cargo:rustc-link-lib=dylib=hardened_malloc-light");
+			println!("cargo:rustc-link-search={}", out_dir);
+		} else {
+			println!("cargo:rustc-link-lib=dylib=hardened_malloc");
+			println!("cargo:rustc-link-search={}", out_dir);
+		}
 	}
+
+	println!("cargo:out_dir={}", out_dir);
 }
