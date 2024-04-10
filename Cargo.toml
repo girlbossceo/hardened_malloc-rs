@@ -3,9 +3,9 @@ name = "hardened_malloc-rs"
 description = "hardened_malloc rust wrapper"
 authors = ["strawberry <strawberry@puppygock.gay>"]
 edition = "2021"
-license = "Apache-2.0 and MIT"
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/girlbossceo/hardened_malloc-rs"
-keywords = ["hardened_malloc", "malloc", "hardened memory allocator", "security", "bindings", "ffi"]
+keywords = ["hardened_malloc", "malloc", "ffi", "security", "bindings"]
 categories = ["api-bindings", "memory-management"]
 readme = "README.md"
 
