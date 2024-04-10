@@ -105,11 +105,11 @@ fn main() {
 		"default"
 	};
 
-	let build_args: Vec<String> = if cfg!(features = "clang") && cfg!(features = "static") {
+	let build_args: Vec<String> = if cfg!(feature = "static") {
 		vec![
 			format!("VARIANT={}", variant),
-			format!("CONFIG_STATIC=true"), // only intended to be used by clang
-			format!("V={}", "1"),          // verbose (?)
+			format!("CONFIG_STATIC=true"),
+			format!("V={}", "1"), // verbose (?)
 			format!("OUT={}", &out_dir),
 			format!("CC={}", compiler),
 		]
