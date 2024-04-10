@@ -53,28 +53,28 @@ fn check_compiler_and_linker(compiler: &'static str, linker: &'static str) -> (&
 		Err(e) => panic!("linker check failed with error: {e}"),
 	}
 
-	if linker.contains("lld") {
-		println!("checking if llvm-ar exists as lld is being used (static build)");
-
-		let llvm_ar_ret = Command::new("llvm-ar").arg("--version").status();
-
-		match llvm_ar_ret.map(|status| (status.success(), status.code())) {
-			Ok((true, _)) => println!("llvm-ar check exited successfully"),
-			Ok((false, Some(exit_code))) => panic!("llvm-ar check failed with error code {exit_code}"),
-			Ok((false, None)) => panic!("llvm-ar check exited with no error code, possibly killed by system"),
-			Err(e) => panic!("llvm-ar check failed with error: {e}"),
-		}
-	}
-
 	(compiler, linker)
 }
 
 fn main() {
+	#[cfg(all(
+		not(feature = "gcc"),
+		not(feature = "clang"),
+		not(feature = "static"),
+		not(feature = "dynamic"),
+		not(feature = "light"),
+		not(feature = "standard")
+	))]
+	compile_error!("At least one of each category of feature must be enabled.");
+
 	#[cfg(all(feature = "gcc", feature = "clang"))]
-	compile_error!("gcc OR clang must be enabled, not both.");
+	compile_error!("gcc OR clang compiler must be enabled, not both.");
 
 	#[cfg(all(feature = "static", feature = "dynamic"))]
-	compile_error!("static OR dynamic must be enabled, not both.");
+	compile_error!("static OR dynamic linking must be enabled, not both.");
+
+	#[cfg(all(feature = "light", feature = "standard"))]
+	compile_error!("light OR standard variant must be enabled, not both.");
 
 	println!("cargo:rerun-if-changed=build.rs");
 	println!("cargo:rerun-if-changed=src/hardened_malloc/");
@@ -91,14 +91,10 @@ fn main() {
 		update_submodules();
 	}
 
-	let (compiler, linker) = if cfg!(feature = "gcc") && cfg!(feature = "dynamic") {
+	let (compiler, _linker) = if cfg!(feature = "gcc") {
 		check_compiler_and_linker("gcc", "ld")
-	} else if cfg!(feature = "gcc") && cfg!(feature = "static") {
-		check_compiler_and_linker("gcc", "gcc-ar")
-	} else if cfg!(feature = "clang") && cfg!(feature = "dynamic") {
-		check_compiler_and_linker("clang", "ld")
 	} else {
-		check_compiler_and_linker("clang", "ld.lld")
+		check_compiler_and_linker("clang", "ld")
 	};
 
 	// "default" is hardened_malloc's default.mk. this crate's feature uses
@@ -109,14 +105,25 @@ fn main() {
 		"default"
 	};
 
-	let build_args: Vec<String> = vec![
-		format!("VARIANT={}", variant),
-		format!("V={}", "1"), // verbose (?)
-		format!("OUT={}", &out_dir),
-		format!("CC={}", compiler),
-	];
+	let build_args: Vec<String> = if cfg!(features = "clang") && cfg!(features = "static") {
+		vec![
+			format!("VARIANT={}", variant),
+			format!("CONFIG_STATIC=true"), // only intended to be used by clang
+			format!("V={}", "1"),          // verbose (?)
+			format!("OUT={}", &out_dir),
+			format!("CC={}", compiler),
+		]
+	} else {
+		vec![
+			format!("VARIANT={}", variant),
+			format!("V={}", "1"), // verbose (?)
+			format!("OUT={}", &out_dir),
+			format!("CC={}", compiler),
+		]
+	};
 
-	// TODO: handle support for explicit make flags like N_ARENA=1 and such
+	// TODO: handle support for explicit make flags like N_ARENA=1 and such (should
+	// this be crate features on top of the existing variant features/configs?)
 	let mut make_command = Command::new("make");
 
 	println!("running {:?} with args {:?}", make_command, build_args);
@@ -158,7 +165,7 @@ fn main() {
 			out_dir.clone() + "/new.o",
 		];
 
-		let mut ar_command = Command::new("llvm-ar");
+		let mut ar_command = Command::new("ar");
 
 		println!("running {:?} with args {:?}", ar_command, ar_args);
 

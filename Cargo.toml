@@ -19,7 +19,7 @@ version = "0.1.0+12"
 rust-version = "1.63.0"
 
 [features]
-default = ["light", "gcc", "static"]
+default = ["static", "gcc", "light"]
 
 ## compiler
 clang = []
@@ -27,17 +27,9 @@ gcc = []
 
 ## linking method
 dynamic = []
-
-
-# todo: remove this warning
-# https://github.com/girlbossceo/hardened_malloc-rs/issues/5
-# IF USING CLANG: 
-#
-# REQUIRES BUILDING YOUR CRATE WITH `RUSTFLAGS='-Clink-arg=-fuse-ld=lld'`
-# REQUIRES llvm, llvm-ar, lld, clang, libclang, AND llvm-libs
 static = []
 
 ## hardened_malloc config
-light = []
 # "standard" feature is "default.mk" config in hardened_malloc
+light = []
 standard = []
