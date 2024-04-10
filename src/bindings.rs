@@ -57,7 +57,23 @@ extern "C" {
 	#endif */
 
 	/* hardened_malloc extensions */
+	/// return an upper bound on object size for any pointer based on malloc
+	/// metadata
 	pub fn malloc_object_size(ptr: *const c_void) -> usize;
+
+	/// similar to malloc_object_size, but avoiding locking so the results are
+	/// much more limited
 	pub fn malloc_object_size_fast(ptr: *const c_void) -> usize;
+
+	/// The free function with an extra parameter for passing the size requested
+	/// at allocation time.
+	///
+	/// This offers the same functionality as C++14 sized deallocation and can
+	/// be used to implement it.
+	///
+	/// A performance-oriented allocator would use this as a performance
+	/// enhancement with undefined behavior on a mismatch. Instead, this
+	/// hardened allocator implementation uses it to improve security by
+	/// checking that the passed size matches the allocated size.
 	pub fn free_sized(ptr: *mut c_void, expected_size: usize) -> c_void;
 }
