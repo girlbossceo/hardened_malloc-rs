@@ -26,7 +26,7 @@ fn update_submodules() {
 	}
 }
 
-fn check_compiler_and_linker(compiler: &'static str, linker: &'static str) -> (&'static str, &'static str) {
+fn check_compiler(compiler: &'static str) -> &'static str {
 	println!("checking if compiler {compiler} exists");
 
 	let compiler_ret = Command::new(compiler).arg("--version").status();
@@ -38,22 +38,7 @@ fn check_compiler_and_linker(compiler: &'static str, linker: &'static str) -> (&
 		Err(e) => panic!("compiler check failed with error: {e}"),
 	}
 
-	println!("checking if linker {linker} exists");
-
-	let linker_ret = Command::new(linker).arg("--version").status();
-
-	match linker_ret.map(|status| (status.success(), status.code())) {
-		Ok((true, _)) => println!("linker check exited successfully"),
-		Ok((false, Some(exit_code))) => {
-			if exit_code == 1 {
-				println!("linker check exited with exit code 1, assuming it's available");
-			}
-		},
-		Ok((false, None)) => panic!("linker check exited with no error code, possibly killed by system"),
-		Err(e) => panic!("linker check failed with error: {e}"),
-	}
-
-	(compiler, linker)
+	compiler
 }
 
 fn main() {
@@ -91,10 +76,10 @@ fn main() {
 		update_submodules();
 	}
 
-	let (compiler, _linker) = if cfg!(feature = "gcc") {
-		check_compiler_and_linker("gcc", "ld")
+	let compiler = if cfg!(feature = "gcc") {
+		check_compiler("gcc")
 	} else {
-		check_compiler_and_linker("clang", "ld")
+		check_compiler("clang")
 	};
 
 	// "default" is hardened_malloc's default.mk. this crate's feature uses
