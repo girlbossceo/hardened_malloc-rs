@@ -76,10 +76,19 @@ fn main() {
 		update_submodules();
 	}
 
-	let compiler = if cfg!(feature = "gcc") {
-		check_compiler("gcc")
-	} else {
-		check_compiler("clang")
+	// despite the feature selected, prefer CC or HOST_CC if in env
+	let compiler = match option_env!("CC") {
+		Some(cc) => check_compiler(cc),
+		None => match option_env!("HOST_CC") {
+			Some(cc) => check_compiler(cc),
+			None => {
+				if cfg!(feature = "gcc") {
+					check_compiler("gcc")
+				} else {
+					check_compiler("clang")
+				}
+			},
+		},
 	};
 
 	// "default" is hardened_malloc's default.mk. this crate's feature uses

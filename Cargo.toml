@@ -10,7 +10,7 @@ categories = ["api-bindings", "memory-management"]
 readme = "README.md"
 
 # everything after the '+' is the latest GrapheneOS hardened_malloc repo tag
-version = "0.1.1+12"
+version = "0.1.2+12"
 
 # https://github.com/GrapheneOS/hardened_malloc?tab=readme-ov-file#dependencies
 # Debian stable (currently Debian 12) determines the most ancient set of supported dependencies
